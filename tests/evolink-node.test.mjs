@@ -100,6 +100,7 @@ test("buildSpinManifest emits yafa style frame urls", () => {
   ]);
 });
 
-test("hasInHouseBackgroundRemoval is available without external api key", () => {
-  assert.equal(hasInHouseBackgroundRemoval(), true);
+test("hasInHouseBackgroundRemoval is gated by local flag", () => {
+  assert.equal(hasInHouseBackgroundRemoval({ LOCAL_INHOUSE_MATTING: "1" }), true);
+  assert.equal(hasInHouseBackgroundRemoval({ LOCAL_INHOUSE_MATTING: "0" }), false);
 });

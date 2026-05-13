@@ -28,7 +28,14 @@ L'app permette di:
 
 Nota: EvoLink richiede URL pubblici diretti. Gli upload temporanei vengono salvati in Supabase Storage e cancellati a fine job. Il bucket configurato in `SUPABASE_STORAGE_BUCKET` deve essere pubblico, così EvoLink può scaricare i reference.
 
-Lo scontorno del modellino usa un modello in-house locale lato server, senza API esterne per frame.
+Su Vercel lo scontorno usa il fallback chroma key per restare sotto il limite Serverless da 250MB. Per provare il matting in-house in locale:
+
+```bash
+npm install @huggingface/transformers sharp
+LOCAL_INHOUSE_MATTING=1 npm run dev
+```
+
+Non deployare quelle dipendenze su Vercel: il bundle supera il limite.
 
 ## Supabase Storage
 
