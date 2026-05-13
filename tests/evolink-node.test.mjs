@@ -12,6 +12,7 @@ import {
 } from "../web/lib/evolink.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
 import { buildSupabaseObjectPath, buildSupabaseRenderObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
+import { hasRemoveBgKey } from "../web/lib/background-removal.mjs";
 
 test("buildSeedancePayload creates reference-to-video request", () => {
   const payload = buildSeedancePayload({
@@ -78,7 +79,7 @@ test("defaultPrompt uses requested hyper realistic green screen camera rotation"
 
   assert.match(prompt, /hyper-realistic 5-second fashion video/);
   assert.match(prompt, /only the camera rotates smoothly 360/);
-  assert.match(prompt, /Solid plain background only/);
+  assert.match(prompt, /Solid pure green screen background only/);
   assert.match(prompt, /Ultra-consistent identity and outfit continuity/);
 });
 
@@ -97,4 +98,9 @@ test("buildSpinManifest emits yafa style frame urls", () => {
     "/renders/render-1/frames/frame_00001.webp",
     "/renders/render-1/frames/frame_00002.webp"
   ]);
+});
+
+test("hasRemoveBgKey detects configured semantic matting", () => {
+  assert.equal(hasRemoveBgKey({ REMOVE_BG_API_KEY: "key" }), true);
+  assert.equal(hasRemoveBgKey({}), false);
 });

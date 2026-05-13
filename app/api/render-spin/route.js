@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { NextResponse } from "next/server";
 
 import { buildSpinManifest } from "../../../web/lib/spin.mjs";
+import { hasRemoveBgKey, removeBackgroundWithRemoveBg } from "../../../web/lib/background-removal.mjs";
 import {
   buildSupabasePublicUrl,
   buildSupabaseRenderObjectPath,
@@ -19,7 +20,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const execFileAsync = promisify(execFile);
-const MAX_SPIN_FRAMES = 96;
+const MAX_SPIN_FRAMES = 72;
 
 async function downloadVideo(videoUrl, outputPath) {
   const response = await fetch(videoUrl);
@@ -47,11 +48,15 @@ export async function POST(request) {
     await downloadVideo(videoUrl, inputPath);
 
     const outputPattern = join(framesDir, "frame_%05d.png");
-    const filter = [
+    const semanticMatting = hasRemoveBgKey();
+    const baseFilters = [
       `fps=24`,
       `select='not(mod(n\\,2))'`,
-      `colorkey=${backgroundColor}:0.18:0.08`,
-      "scale='min(900,iw)':-1:flags=lanczos",
+      "scale='min(900,iw)':-1:flags=lanczos"
+    ];
+    const filter = [
+      ...baseFilters,
+      ...(semanticMatting ? [] : [`colorkey=${backgroundColor}:0.28:0.16`]),
       "format=rgba"
     ].join(",");
 
@@ -73,8 +78,12 @@ export async function POST(request) {
       const uploaded = await Promise.all(
         batch.map(async (frameName) => {
           const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
+          const sourceBytes = await readFile(join(framesDir, frameName));
+          const outputBytes = semanticMatting
+            ? await removeBackgroundWithRemoveBg({ bytes: sourceBytes, fileName })
+            : sourceBytes;
           await uploadBufferToSupabaseStorage({
-            bytes: await readFile(join(framesDir, frameName)),
+            bytes: outputBytes,
             path,
             contentType: "image/png",
             config
