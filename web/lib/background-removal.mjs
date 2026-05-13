@@ -33,8 +33,16 @@ export async function removeBackgroundInHouse({ bytes }) {
   const maskSource = Array.isArray(result) ? result[0]?.mask : result?.mask;
   if (!maskSource) throw new Error("Il modello non ha restituito una maschera.");
 
-  const maskBytes = Buffer.from(await maskSource.toRaw());
-  const maskMeta = maskSource.size || {};
+  let maskBytes;
+  let maskMeta = maskSource.size || {};
+  if (typeof maskSource.toRaw === "function") {
+    maskBytes = Buffer.from(await maskSource.toRaw());
+  } else if (maskSource.data) {
+    maskBytes = Buffer.from(maskSource.data);
+    maskMeta = { width: maskSource.width || maskMeta.width, height: maskSource.height || maskMeta.height };
+  } else {
+    throw new Error(`Formato maschera non supportato: ${Object.keys(maskSource).join(",")}`);
+  }
   const maskWidth = maskMeta.width || width;
   const maskHeight = maskMeta.height || height;
   const alpha = await sharp(maskBytes, {

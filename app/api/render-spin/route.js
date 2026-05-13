@@ -61,17 +61,28 @@ export async function POST(request) {
 
     const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".png")).sort().slice(0, MAX_SPIN_FRAMES);
     const frameUrls = [];
+    let mattingFailures = 0;
     for (const frameName of frameNames) {
       const sourcePath = join(framesDir, frameName);
       const sourceBytes = await readFile(sourcePath);
-      const outputBytes = await removeBackgroundInHouse({ bytes: sourceBytes }).catch(() => sourceBytes);
+      let outputBytes;
+      try {
+        outputBytes = await removeBackgroundInHouse({ bytes: sourceBytes });
+      } catch (error) {
+        mattingFailures += 1;
+        if (process.env.LOCAL_INHOUSE_MATTING === "1") {
+          throw new Error(`Matting fallito su ${frameName}: ${error.message}`);
+        }
+        outputBytes = sourceBytes;
+      }
       await writeFile(sourcePath, outputBytes);
       frameUrls.push(`/local-renders/${id}/frames/${frameName}`);
     }
 
     const manifest = {
       ...buildSpinManifest({ id, prefix: "frame_", frameCount: frameUrls.length, ext: "png" }),
-      frames: frameUrls
+      frames: frameUrls,
+      mattingFailures
     };
     await writeFile(join(renderDir, "manifest.json"), JSON.stringify(manifest, null, 2));
 
