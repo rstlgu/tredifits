@@ -9,3 +9,4 @@ __pycache__/
 node_modules/
 public/uploads/
 public/renders/
+public/local-renders/

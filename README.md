@@ -9,8 +9,6 @@ Configura la key solo lato server:
 ```bash
 cp .env.example .env.local
 # inserisci EVOLINK_API_KEY in .env.local
-# per upload temporaneo configura anche Supabase Storage:
-# SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET
 npm install
 npm run dev
 ```
@@ -26,9 +24,9 @@ L'app permette di:
 - creare frame WebP ruotabili stile YafaFits;
 - vedere stato, preview video e modellino drag-to-rotate.
 
-Nota: EvoLink richiede URL pubblici diretti. Gli upload temporanei vengono salvati in Supabase Storage e cancellati a fine job. Il bucket configurato in `SUPABASE_STORAGE_BUCKET` deve essere pubblico, così EvoLink può scaricare i reference.
+Per uso locale da task EvoLink già concluso: incolla il task id nel campo `Task EvoLink completato`. L'app scarica il video del task, salva i frame in `public/local-renders` e crea il viewer 360.
 
-Su Vercel lo scontorno usa il fallback chroma key per restare sotto il limite Serverless da 250MB. Per provare il matting in-house in locale:
+Per provare il matting in-house in locale:
 
 ```bash
 npm install @huggingface/transformers sharp
@@ -36,23 +34,6 @@ LOCAL_INHOUSE_MATTING=1 npm run dev
 ```
 
 Non deployare quelle dipendenze su Vercel: il bundle supera il limite.
-
-## Supabase Storage
-
-Non serve creare tabelle database per questa app. Serve solo un bucket Storage pubblico.
-
-1. In Supabase apri `Storage`.
-2. Crea un bucket chiamato `tredifits-temp`.
-3. Rendi il bucket pubblico.
-4. In Vercel aggiungi queste environment variables:
-
-```env
-SUPABASE_URL=https://zjyneszamncexwxpjgtm.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=...
-SUPABASE_STORAGE_BUCKET=tredifits-temp
-```
-
-Non esporre `SUPABASE_SERVICE_ROLE_KEY` nel frontend e non committare `.env`.
 
 ## Setup
 
