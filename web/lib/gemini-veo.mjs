@@ -34,7 +34,7 @@ export function buildGeminiVeoPayload({
     instances: [{
       prompt,
       referenceImages: images.map((image) => ({
-        image: { fileData: { mimeType: image.mimeType, fileUri: image.fileUri } },
+        image: { bytesBase64Encoded: image.data, mimeType: image.mimeType },
         referenceType: "asset"
       }))
     }],
@@ -45,40 +45,17 @@ export function buildGeminiVeoPayload({
   };
 }
 
-async function uploadImageToFilesApi(apiKey, url) {
+async function fetchImageAsBase64(url) {
   const response = await fetch(url);
   if (!response.ok) throw new Error(`Download reference immagine fallito: ${response.status}`);
   const mimeType = response.headers.get("content-type")?.split(";")[0] || "image/png";
   if (!mimeType.startsWith("image/")) throw new Error(`Reference non immagine: ${mimeType}`);
   const bytes = Buffer.from(await response.arrayBuffer());
-
-  const boundary = `gemini-upload-${Date.now()}`;
-  const metaPart = Buffer.from(
-    `--${boundary}\r\nContent-Type: application/json\r\n\r\n{"file":{"display_name":"ref"}}\r\n--${boundary}\r\nContent-Type: ${mimeType}\r\n\r\n`
-  );
-  const endPart = Buffer.from(`\r\n--${boundary}--`);
-  const body = Buffer.concat([metaPart, bytes, endPart]);
-
-  const uploadResponse = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files`, {
-    method: "POST",
-    headers: {
-      "x-goog-api-key": apiKey,
-      "X-Goog-Upload-Protocol": "multipart",
-      "Content-Type": `multipart/related; boundary=${boundary}`
-    },
-    body
-  });
-  const uploadBody = await uploadResponse.json().catch(() => ({}));
-  if (!uploadResponse.ok) {
-    throw new Error(uploadBody?.error?.message || `Files API upload failed with ${uploadResponse.status}`);
-  }
-  const fileUri = uploadBody?.file?.uri;
-  if (!fileUri) throw new Error("Files API non ha restituito URI.");
-  return { mimeType, fileUri };
+  return { mimeType, data: bytes.toString("base64") };
 }
 
 export async function createGeminiVeoTask(apiKey, { model, imageUrls = [], videoUrls = [], prompt, quality, aspectRatio }) {
-  const images = await Promise.all(imageUrls.slice(0, 3).map((url) => uploadImageToFilesApi(apiKey, url)));
+  const images = await Promise.all(imageUrls.slice(0, 3).map(fetchImageAsBase64));
   const payload = buildGeminiVeoPayload({ model, prompt, images, videoUrls, quality, aspectRatio });
   const response = await fetch(`${GEMINI_API_BASE}/models/${model}:predictLongRunning`, {
     method: "POST",
