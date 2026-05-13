@@ -15,6 +15,8 @@ function splitUrls(value) {
 
 export default function Home() {
   const [mode, setMode] = useState("images");
+  const [source, setSource] = useState("url");
+  const [files, setFiles] = useState([]);
   const [imageUrlsText, setImageUrlsText] = useState("");
   const [videoUrlsText, setVideoUrlsText] = useState("");
   const [prompt, setPrompt] = useState(DEFAULT_PROMPT);
@@ -26,10 +28,47 @@ export default function Home() {
   const [spin, setSpin] = useState(null);
 
   const selectedSummary = useMemo(() => {
-    const images = splitUrls(imageUrlsText).length;
-    const videos = splitUrls(videoUrlsText).length;
+    const images = source === "upload" ? files.filter((file) => file.type.startsWith("image/")).length : splitUrls(imageUrlsText).length;
+    const videos = source === "upload" ? files.filter((file) => file.type.startsWith("video/")).length : splitUrls(videoUrlsText).length;
     return mode === "images" ? `${images}/2 foto` : `${videos}/1 video`;
-  }, [imageUrlsText, mode, videoUrlsText]);
+  }, [files, imageUrlsText, mode, source, videoUrlsText]);
+
+  function onFilesSelected(fileList) {
+    const selected = Array.from(fileList || []);
+    if (mode === "images") {
+      setFiles(selected.filter((file) => file.type.startsWith("image/")).slice(0, 2));
+      return;
+    }
+    setFiles(selected.filter((file) => file.type.startsWith("video/")).slice(0, 1));
+  }
+
+  async function uploadReferences() {
+    if (files.length === 0) throw new Error(mode === "images" ? "Carica 1 o 2 foto." : "Carica 1 video max 5 sec.");
+
+    setMessage("Upload temporaneo reference...");
+    const formData = new FormData();
+    for (const file of files) formData.append("files", file);
+
+    const response = await fetch("/api/upload", { method: "POST", body: formData });
+    const body = await response.json();
+    if (!response.ok) throw new Error(body.error || "Upload fallito.");
+
+    const uploaded = body.uploads || [];
+    return {
+      imageUrls: uploaded.filter((item) => item.type.startsWith("image/")).map((item) => item.url),
+      videoUrls: uploaded.filter((item) => item.type.startsWith("video/")).map((item) => item.url),
+      fileNames: uploaded.map((item) => item.fileName).filter(Boolean)
+    };
+  }
+
+  async function cleanupUploads(fileNames) {
+    if (!fileNames.length) return;
+    await fetch("/api/cleanup-uploads", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileNames })
+    }).catch(() => {});
+  }
 
   async function pollTask(taskId) {
     setMessage("Generazione in corso...");
@@ -49,13 +88,16 @@ export default function Home() {
     setTask(null);
     setSpin(null);
     setMessage("");
+    let tempFileNames = [];
 
     try {
-      const imageUrls = mode === "images" ? splitUrls(imageUrlsText).slice(0, 2) : [];
-      const videoUrls = mode === "video" ? splitUrls(videoUrlsText).slice(0, 1) : [];
+      const uploaded = source === "upload" ? await uploadReferences() : { imageUrls: [], videoUrls: [], fileNames: [] };
+      tempFileNames = uploaded.fileNames;
+      const imageUrls = mode === "images" ? (source === "upload" ? uploaded.imageUrls : splitUrls(imageUrlsText).slice(0, 2)) : [];
+      const videoUrls = mode === "video" ? (source === "upload" ? uploaded.videoUrls : splitUrls(videoUrlsText).slice(0, 1)) : [];
 
-      if (mode === "images" && imageUrls.length === 0) throw new Error("Inserisci 1 o 2 URL immagine.");
-      if (mode === "video" && videoUrls.length !== 1) throw new Error("Inserisci 1 URL video pubblico, max 5 sec.");
+      if (mode === "images" && imageUrls.length === 0) throw new Error(source === "upload" ? "Carica 1 o 2 foto." : "Inserisci 1 o 2 URL immagine.");
+      if (mode === "video" && videoUrls.length !== 1) throw new Error(source === "upload" ? "Carica 1 video max 5 sec." : "Inserisci 1 URL video pubblico, max 5 sec.");
 
       setMessage("Creo task Seedance...");
       const response = await fetch("/api/generate", {
@@ -89,6 +131,8 @@ export default function Home() {
     } catch (error) {
       setStatus("failed");
       setMessage(error.message);
+    } finally {
+      await cleanupUploads(tempFileNames);
     }
   }
 
@@ -112,15 +156,48 @@ export default function Home() {
             </button>
           </div>
 
+          <div className="modeSwitch sourceSwitch" role="tablist" aria-label="Sorgente reference">
+            <button type="button" className={source === "url" ? "active" : ""} onClick={() => setSource("url")}>
+              URL pubblico
+            </button>
+            <button type="button" className={source === "upload" ? "active" : ""} onClick={() => setSource("upload")}>
+              Upload temporaneo
+            </button>
+          </div>
+
           <div className="grid single">
-            <label>
-              <span>{mode === "images" ? "Image URL pubblici (max 2)" : "Video URL pubblico (max 5 sec)"}</span>
-              <textarea
-                value={mode === "images" ? imageUrlsText : videoUrlsText}
-                onChange={(event) => (mode === "images" ? setImageUrlsText(event.target.value) : setVideoUrlsText(event.target.value))}
-                placeholder={mode === "images" ? "https://...\nhttps://..." : "https://.../clip.mp4"}
-              />
-            </label>
+            {source === "url" ? (
+              <label>
+                <span>{mode === "images" ? "Image URL pubblici (max 2)" : "Video URL pubblico (max 5 sec)"}</span>
+                <textarea
+                  value={mode === "images" ? imageUrlsText : videoUrlsText}
+                  onChange={(event) => (mode === "images" ? setImageUrlsText(event.target.value) : setVideoUrlsText(event.target.value))}
+                  placeholder={mode === "images" ? "https://...\nhttps://..." : "https://.../clip.mp4"}
+                />
+              </label>
+            ) : (
+              <label className="drop">
+                <input
+                  type="file"
+                  multiple={mode === "images"}
+                  accept={mode === "images" ? "image/png,image/jpeg,image/webp" : "video/mp4,video/quicktime"}
+                  onChange={(event) => onFilesSelected(event.target.files)}
+                />
+                <span>{mode === "images" ? "Carica 1-2 foto" : "Carica 1 video"}</span>
+                <small>
+                  {files.length > 0
+                    ? files.map((file) => file.name).join(", ")
+                    : mode === "images"
+                      ? "PNG, WEBP, JPG"
+                      : "MP4 o MOV · max 5 sec consigliati"}
+                </small>
+              </label>
+            )}
+            {source === "upload" && (
+              <p className="hint">
+                I file vengono pubblicati temporaneamente, usati per EvoLink e cancellati automaticamente a fine job.
+              </p>
+            )}
           </div>
 
           <label>

@@ -18,13 +18,13 @@ Apri `http://localhost:3000`.
 L'app permette di:
 
 - scegliere **1-2 foto** oppure **1 video reference max 5 sec**;
-- usare URL pubblici già pronti;
+- usare URL pubblici già pronti oppure upload temporaneo;
 - creare un task Seedance 2.0 Reference-to-Video da 5-10 secondi;
 - rimuovere automaticamente lo sfondo uniforme dal video generato;
 - creare frame WebP ruotabili stile YafaFits;
 - vedere stato, preview video e modellino drag-to-rotate.
 
-Nota: EvoLink richiede URL pubblici diretti. Per il risultato migliore usa reference pulite e fai generare uno sfondo studio uniforme.
+Nota: EvoLink richiede URL pubblici diretti. L'upload temporaneo funziona quando questa app è raggiungibile pubblicamente, per esempio deployata o esposta con tunnel. In locale puro usa URL pubblici esterni.
 
 ## Setup
 

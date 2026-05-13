@@ -5,6 +5,7 @@ import {
   buildPublicUploadUrl,
   buildSeedancePayload,
   defaultPrompt,
+  isSafeUploadedFileName,
   safeUploadName,
   validateReferences
 } from "../web/lib/evolink.mjs";
@@ -38,6 +39,12 @@ test("buildPublicUploadUrl uses request origin and upload path", () => {
     buildPublicUploadUrl("http://localhost:3000", "abc.webp"),
     "http://localhost:3000/uploads/abc.webp"
   );
+});
+
+test("isSafeUploadedFileName only accepts flat upload filenames", () => {
+  assert.equal(isSafeUploadedFileName("123-keyframe.webp"), true);
+  assert.equal(isSafeUploadedFileName("../.env"), false);
+  assert.equal(isSafeUploadedFileName("nested/file.webp"), false);
 });
 
 test("defaultPrompt uses requested hyper realistic green screen camera rotation", () => {

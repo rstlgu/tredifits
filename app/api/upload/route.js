@@ -30,6 +30,7 @@ export async function POST(request) {
     uploads.push({
       name: file.name,
       type: file.type,
+      fileName: uniqueName,
       url: buildPublicUploadUrl(new URL(request.url).origin, uniqueName)
     });
   }

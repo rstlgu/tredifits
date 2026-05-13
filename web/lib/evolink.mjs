@@ -87,6 +87,10 @@ export function safeUploadName(name) {
   return `${cleaned || "upload"}${ext}`;
 }
 
+export function isSafeUploadedFileName(name) {
+  return /^[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(name) && !name.includes("/") && !name.includes("\\") && !name.includes("..");
+}
+
 export function buildPublicUploadUrl(origin, fileName) {
   return `${origin.replace(/\/$/, "")}/uploads/${fileName}`;
 }

@@ -89,6 +89,10 @@ select {
   padding: 6px;
 }
 
+.sourceSwitch {
+  margin-top: -8px;
+}
+
 .modeSwitch button {
   border-color: transparent;
   background: transparent;
@@ -140,9 +144,14 @@ label > span {
 
 .drop small,
 .summary,
+.hint,
 .preview p {
   color: var(--muted);
   font-size: 13px;
+}
+
+.hint {
+  margin: -4px 0 0;
 }
 
 .grid {
