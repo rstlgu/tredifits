@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 
 import { defaultPrompt } from "../web/lib/evolink.mjs";
 import { VEO_MODELS } from "../web/lib/gemini-veo-models.mjs";
+import { REPLICATE_MODELS } from "../web/lib/replicate.mjs";
 
 const DEFAULT_PROMPT = defaultPrompt();
 const SEEDANCE_MODEL = "seedance-2.0-reference-to-video";
@@ -37,6 +38,8 @@ export default function Home() {
     return mode === "images" ? `${images}/2 foto` : `${videos}/1 video`;
   }, [files, imageUrlsText, mode, source, videoUrlsText]);
   const isVeo = model.startsWith("veo-");
+  const isReplicate = REPLICATE_MODELS.some((item) => item.id === model);
+  const isImagesOnly = isVeo || isReplicate;
 
   function onFilesSelected(fileList) {
     const selected = Array.from(fileList || []);
@@ -153,11 +156,11 @@ export default function Home() {
       const imageUrls = mode === "images" ? (source === "upload" ? uploaded.imageUrls : splitUrls(imageUrlsText).slice(0, 2)) : [];
       const videoUrls = mode === "video" ? (source === "upload" ? uploaded.videoUrls : splitUrls(videoUrlsText).slice(0, 1)) : [];
 
-      if (isVeo && mode !== "images") throw new Error("Veo 3.1 supporta solo reference immagini in questa integrazione.");
+      if (isImagesOnly && mode !== "images") throw new Error("Questo modello supporta solo reference immagini.");
       if (mode === "images" && imageUrls.length === 0) throw new Error(source === "upload" ? "Carica 1 o 2 foto." : "Inserisci 1 o 2 URL immagine.");
       if (mode === "video" && videoUrls.length !== 1) throw new Error(source === "upload" ? "Carica 1 video max 5 sec." : "Inserisci 1 URL video pubblico, max 5 sec.");
 
-      setMessage(isVeo ? "Creo task Gemini Veo..." : "Creo task Seedance...");
+      setMessage(isVeo ? "Creo task Gemini Veo..." : isReplicate ? "Creo task Replicate..." : "Creo task Seedance...");
       const response = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -191,18 +194,22 @@ export default function Home() {
       <section className="panel">
           <div className="brand">
             <span>Outfit Motion Lab</span>
-          <strong>{isVeo ? "Gemini Veo 3.1" : "Seedance 2.0"}</strong>
+          <strong>{isVeo ? "Gemini Veo" : isReplicate ? "Runway Gen-4 Turbo" : "Seedance 2.0"}</strong>
           </div>
 
         <form onSubmit={onSubmit} className="form">
           <label>
             <span>Modello video</span>
             <select value={model} onChange={(event) => {
-              setModel(event.target.value);
-              if (event.target.value.startsWith("veo-")) setMode("images");
+              const next = event.target.value;
+              setModel(next);
+              if (next.startsWith("veo-") || REPLICATE_MODELS.some((item) => item.id === next)) setMode("images");
             }} aria-label="Modello video">
               <option value={SEEDANCE_MODEL}>Seedance 2.0 Reference-to-Video</option>
               {VEO_MODELS.map((item) => (
+                <option key={item.id} value={item.id}>{item.label}</option>
+              ))}
+              {REPLICATE_MODELS.map((item) => (
                 <option key={item.id} value={item.id}>{item.label}</option>
               ))}
             </select>
@@ -212,11 +219,12 @@ export default function Home() {
             <button type="button" className={mode === "images" ? "active" : ""} onClick={() => setMode("images")}>
               1-2 foto
             </button>
-            <button type="button" className={mode === "video" ? "active" : ""} disabled={isVeo} onClick={() => setMode("video")}>
+            <button type="button" className={mode === "video" ? "active" : ""} disabled={isImagesOnly} onClick={() => setMode("video")}>
               1 video max 5 sec
             </button>
           </div>
-          {isVeo && <p className="hint">Veo 3.1 preview usa reference immagini. Richiede Gemini API paid tier e genera video 8 sec.</p>}
+          {isVeo && <p className="hint">Veo preview usa reference immagini. Richiede Gemini API paid tier e genera video 8 sec.</p>}
+          {isReplicate && <p className="hint">Runway Gen-4 Turbo usa una sola immagine reference. Durata 5 o 10 sec, 720p.</p>}
 
           <div className="modeSwitch sourceSwitch" role="tablist" aria-label="Sorgente reference">
             <button type="button" className={source === "url" ? "active" : ""} onClick={() => setSource("url")}>

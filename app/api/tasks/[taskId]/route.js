@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { getEvolinkTask } from "../../../../web/lib/evolink.mjs";
 import { getGeminiVeoTask } from "../../../../web/lib/gemini-veo.mjs";
+import { getReplicateTask } from "../../../../web/lib/replicate.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -15,6 +16,15 @@ export async function GET(_request, { params }) {
         return NextResponse.json({ error: "GEMINI_API_KEY non configurata sul server." }, { status: 500 });
       }
       const task = await getGeminiVeoTask(apiKey, taskId);
+      return NextResponse.json(task);
+    }
+
+    if (taskId.startsWith("replicate-")) {
+      const apiKey = process.env.REPLICATE_API_TOKEN;
+      if (!apiKey) {
+        return NextResponse.json({ error: "REPLICATE_API_TOKEN non configurato sul server." }, { status: 500 });
+      }
+      const task = await getReplicateTask(apiKey, taskId);
       return NextResponse.json(task);
     }
 
