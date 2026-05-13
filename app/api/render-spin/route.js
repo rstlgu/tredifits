@@ -63,7 +63,8 @@ export async function POST(request) {
     const frameUrls = [];
     for (const frameName of frameNames) {
       const sourcePath = join(framesDir, frameName);
-      const outputBytes = await removeBackgroundInHouse({ bytes: await readFile(sourcePath) });
+      const sourceBytes = await readFile(sourcePath);
+      const outputBytes = await removeBackgroundInHouse({ bytes: sourceBytes }).catch(() => sourceBytes);
       await writeFile(sourcePath, outputBytes);
       frameUrls.push(`/local-renders/${id}/frames/${frameName}`);
     }

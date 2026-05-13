@@ -28,7 +28,8 @@ export async function removeBackgroundInHouse({ bytes }) {
   if (!width || !height) throw new Error("Frame non valido per background removal.");
 
   const segmenter = await globalThis.__tredifitsSegmenterPromise;
-  const result = await segmenter(bytes);
+  const dataUrl = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
+  const result = await segmenter(dataUrl);
   const maskSource = Array.isArray(result) ? result[0]?.mask : result?.mask;
   if (!maskSource) throw new Error("Il modello non ha restituito una maschera.");
 
