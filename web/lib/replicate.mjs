@@ -65,9 +65,15 @@ function buildSeedance20Input({ imageUrls, videoUrls, prompt, duration, aspectRa
   }
   if (imageUrls.length === 1) {
     input.image = imageUrls[0];
+    input.last_frame_image = imageUrls[0];
     return input;
   }
-  if (imageUrls.length > 1) {
+  if (imageUrls.length === 2) {
+    input.image = imageUrls[0];
+    input.last_frame_image = imageUrls[1];
+    return input;
+  }
+  if (imageUrls.length > 2) {
     input.reference_images = imageUrls.slice(0, 9);
     return input;
   }
