@@ -32,7 +32,7 @@ async function downloadVideo(videoUrl, outputPath) {
 export async function POST(request) {
   let renderDir;
   try {
-    const { videoUrl, backgroundColor = "0x00ff00" } = await request.json();
+    const { videoUrl, backgroundColor = "0xf2f2f2" } = await request.json();
     if (!videoUrl || !/^https?:\/\//.test(videoUrl)) {
       return NextResponse.json({ error: "videoUrl non valido." }, { status: 400 });
     }
@@ -45,7 +45,7 @@ export async function POST(request) {
     await mkdir(framesDir, { recursive: true });
     await downloadVideo(videoUrl, inputPath);
 
-    const outputPattern = join(framesDir, "frame_%05d.webp");
+    const outputPattern = join(framesDir, "frame_%05d.png");
     const filter = [
       "fps=32",
       `colorkey=${backgroundColor}:0.18:0.08`,
@@ -58,28 +58,26 @@ export async function POST(request) {
       inputPath,
       "-vf",
       filter,
-      "-lossless",
-      "1",
       "-compression_level",
-      "4",
+      "6",
       outputPattern
     ]);
 
-    const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".webp")).sort();
+    const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".png")).sort();
     const frameUrls = [];
     for (const frameName of frameNames) {
       const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
       await uploadBufferToSupabaseStorage({
         bytes: await readFile(join(framesDir, frameName)),
         path,
-        contentType: "image/webp",
+        contentType: "image/png",
         config
       });
       frameUrls.push(buildSupabasePublicUrl({ url: config.url, bucket: config.bucket, path }));
     }
 
     const manifest = {
-      ...buildSpinManifest({ id, prefix: "frame_", frameCount: frameUrls.length, ext: "webp" }),
+      ...buildSpinManifest({ id, prefix: "frame_", frameCount: frameUrls.length, ext: "png" }),
       frames: frameUrls
     };
     const manifestPath = buildSupabaseRenderObjectPath({ renderId: id, fileName: "manifest.json" });

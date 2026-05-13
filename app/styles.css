@@ -290,6 +290,11 @@ video {
   min-height: 160px;
 }
 
+.spinWrap {
+  display: grid;
+  gap: 10px;
+}
+
 .spinStage {
   position: relative;
   display: grid;
@@ -321,6 +326,24 @@ video {
   padding: 6px 9px;
   font-size: 11px;
   letter-spacing: 0.12em;
+}
+
+.spinControls {
+  display: grid;
+  grid-template-columns: 44px 1fr 44px;
+  align-items: center;
+  gap: 10px;
+}
+
+.spinControls button {
+  min-height: 36px;
+  padding: 0;
+}
+
+.spinControls small {
+  color: var(--muted);
+  text-align: center;
+  font-size: 12px;
 }
 
 .download {

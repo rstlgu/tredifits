@@ -313,6 +313,7 @@ function SpinViewer({ frames }) {
   const [index, setIndex] = useState(0);
   const [drag, setDrag] = useState(null);
   const current = frames[((index % frames.length) + frames.length) % frames.length];
+  const normalizedIndex = ((index % frames.length) + frames.length) % frames.length;
 
   function onPointerMove(event) {
     if (!drag) return;
@@ -323,18 +324,25 @@ function SpinViewer({ frames }) {
   }
 
   return (
-    <div
-      className="spinStage"
-      onPointerDown={(event) => {
-        event.currentTarget.setPointerCapture(event.pointerId);
-        setDrag({ x: event.clientX });
-      }}
-      onPointerMove={onPointerMove}
-      onPointerUp={() => setDrag(null)}
-      onPointerCancel={() => setDrag(null)}
-    >
-      <img src={current} alt="" draggable={false} />
-      <span>{String(index + 1).padStart(3, "0")} / {frames.length}</span>
+    <div className="spinWrap">
+      <div
+        className="spinStage"
+        onPointerDown={(event) => {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setDrag({ x: event.clientX });
+        }}
+        onPointerMove={onPointerMove}
+        onPointerUp={() => setDrag(null)}
+        onPointerCancel={() => setDrag(null)}
+      >
+        <img src={current} alt="" draggable={false} />
+        <span>{String(normalizedIndex + 1).padStart(3, "0")} / {frames.length}</span>
+      </div>
+      <div className="spinControls">
+        <button type="button" onClick={() => setIndex((value) => value - 1)}>←</button>
+        <small>Trascina o usa le frecce per ruotare il modellino</small>
+        <button type="button" onClick={() => setIndex((value) => value + 1)}>→</button>
+      </div>
     </div>
   );
 }
