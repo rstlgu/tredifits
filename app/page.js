@@ -80,8 +80,9 @@ export default function Home() {
     for (;;) {
       await new Promise((resolve) => setTimeout(resolve, 8000));
       const response = await fetch(`/api/tasks/${taskId}`);
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Query task fallita.");
+      const rawText = await response.text();
+      const body = rawText ? JSON.parse(rawText) : {};
+      if (!response.ok) throw new Error(body.error || `Query task fallita (HTTP ${response.status}).`);
       setTask(body);
       if (body.status === "completed" || body.status === "failed") return body;
     }
