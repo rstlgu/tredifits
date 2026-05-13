@@ -28,6 +28,23 @@ L'app permette di:
 
 Nota: EvoLink richiede URL pubblici diretti. Gli upload temporanei vengono salvati in Supabase Storage e cancellati a fine job. Il bucket configurato in `SUPABASE_STORAGE_BUCKET` deve essere pubblico, così EvoLink può scaricare i reference.
 
+## Supabase Storage
+
+Non serve creare tabelle database per questa app. Serve solo un bucket Storage pubblico.
+
+1. In Supabase apri `Storage`.
+2. Crea un bucket chiamato `tredifits-temp`.
+3. Rendi il bucket pubblico.
+4. In Vercel aggiungi queste environment variables:
+
+```env
+SUPABASE_URL=https://zjyneszamncexwxpjgtm.supabase.co
+SUPABASE_SERVICE_ROLE_KEY=...
+SUPABASE_STORAGE_BUCKET=tredifits-temp
+```
+
+Non esporre `SUPABASE_SERVICE_ROLE_KEY` nel frontend e non committare `.env`.
+
 ## Setup
 
 ```bash
