@@ -30,7 +30,8 @@ body {
 
 button,
 textarea,
-select {
+select,
+input {
   font: inherit;
 }
 
@@ -165,6 +166,7 @@ label > span {
 }
 
 textarea,
+input,
 select {
   width: 100%;
   border: 1px solid var(--line);
@@ -178,6 +180,21 @@ textarea {
   min-height: 92px;
   resize: vertical;
   padding: 12px;
+}
+
+input {
+  height: 44px;
+  padding: 0 12px;
+}
+
+.restoreForm {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 12px;
+  margin-top: 18px;
+  border-top: 1px solid var(--line);
+  padding-top: 18px;
 }
 
 .prompt {
@@ -313,7 +330,8 @@ video {
 @media (max-width: 900px) {
   .shell,
   .grid,
-  .actions {
+  .actions,
+  .restoreForm {
     grid-template-columns: 1fr;
   }
 

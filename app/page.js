@@ -26,6 +26,7 @@ export default function Home() {
   const [message, setMessage] = useState("");
   const [task, setTask] = useState(null);
   const [spin, setSpin] = useState(null);
+  const [existingTaskId, setExistingTaskId] = useState("");
 
   const selectedSummary = useMemo(() => {
     const images = source === "upload" ? files.filter((file) => file.type.startsWith("image/")).length : splitUrls(imageUrlsText).length;
@@ -82,6 +83,45 @@ export default function Home() {
     }
   }
 
+  async function renderSpinFromVideo(videoUrl) {
+    setMessage("Video pronto. Creo modellino ruotabile...");
+    const spinResponse = await fetch("/api/render-spin", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ videoUrl })
+    });
+    const spinBody = await spinResponse.json();
+    if (!spinResponse.ok) throw new Error(spinBody.error || "Render modellino fallito.");
+    setSpin(spinBody);
+    setStatus("completed");
+    setMessage("Modellino pronto.");
+  }
+
+  async function onRenderExistingTask(event) {
+    event.preventDefault();
+    const taskId = existingTaskId.trim();
+    if (!taskId) return;
+
+    setStatus("running");
+    setTask(null);
+    setSpin(null);
+    setMessage("Recupero task EvoLink...");
+
+    try {
+      const response = await fetch(`/api/evolink-task/${encodeURIComponent(taskId)}`);
+      const body = await response.json();
+      if (!response.ok) throw new Error(body.error || "Task non recuperabile.");
+      if (body.status !== "completed" || !body.results?.[0]) {
+        throw new Error("Il task non è completato o non contiene un video.");
+      }
+      setTask(body);
+      await renderSpinFromVideo(body.results[0]);
+    } catch (error) {
+      setStatus("failed");
+      setMessage(error.message);
+    }
+  }
+
   async function onSubmit(event) {
     event.preventDefault();
     setStatus("running");
@@ -116,18 +156,7 @@ export default function Home() {
         return;
       }
 
-      setMessage("Video pronto. Creo modellino ruotabile...");
-      const spinResponse = await fetch("/api/render-spin", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ videoUrl: finalTask.results?.[0] })
-      });
-      const spinBody = await spinResponse.json();
-      if (!spinResponse.ok) throw new Error(spinBody.error || "Render modellino fallito.");
-
-      setSpin(spinBody);
-      setStatus("completed");
-      setMessage("Modellino pronto.");
+      await renderSpinFromVideo(finalTask.results?.[0]);
     } catch (error) {
       setStatus("failed");
       setMessage(error.message);
@@ -222,6 +251,18 @@ export default function Home() {
             <div className="summary">{selectedSummary}</div>
             <button disabled={status === "running"}>{status === "running" ? "Processo..." : "Genera modellino"}</button>
           </div>
+        </form>
+
+        <form onSubmit={onRenderExistingTask} className="restoreForm">
+          <label>
+            <span>Task EvoLink completato</span>
+            <input
+              value={existingTaskId}
+              onChange={(event) => setExistingTaskId(event.target.value)}
+              placeholder="task-unified-..."
+            />
+          </label>
+          <button disabled={status === "running"}>Crea modellino da task</button>
         </form>
       </section>
 
