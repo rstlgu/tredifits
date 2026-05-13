@@ -85,16 +85,28 @@ export default function Home() {
 
   async function renderSpinFromVideo(videoUrl) {
     setMessage("Video pronto. Creo modellino ruotabile...");
-    const spinResponse = await fetch("/api/render-spin", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ videoUrl })
-    });
-    const spinBody = await spinResponse.json();
-    if (!spinResponse.ok) throw new Error(spinBody.error || "Render modellino fallito.");
-    setSpin(spinBody);
-    setStatus("completed");
-    setMessage("Modellino pronto.");
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 240000);
+    try {
+      const spinResponse = await fetch("/api/render-spin", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ videoUrl }),
+        signal: controller.signal
+      });
+      const spinBody = await spinResponse.json().catch(() => ({}));
+      if (!spinResponse.ok) throw new Error(spinBody.error || `Render modellino fallito (${spinResponse.status}).`);
+      setSpin(spinBody);
+      setStatus("completed");
+      setMessage(`Modellino pronto: ${spinBody.frameCount || spinBody.frames?.length || 0} frame.`);
+    } catch (error) {
+      if (error.name === "AbortError") {
+        throw new Error("Render modellino scaduto. Prova con video 5 sec o qualità 720p.");
+      }
+      throw error;
+    } finally {
+      window.clearTimeout(timeout);
+    }
   }
 
   async function onRenderExistingTask(event) {

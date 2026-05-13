@@ -16,9 +16,10 @@ import {
 } from "../../../web/lib/supabase-storage.mjs";
 
 export const runtime = "nodejs";
-export const maxDuration = 120;
+export const maxDuration = 300;
 
 const execFileAsync = promisify(execFile);
+const MAX_SPIN_FRAMES = 96;
 
 async function downloadVideo(videoUrl, outputPath) {
   const response = await fetch(videoUrl);
@@ -47,8 +48,10 @@ export async function POST(request) {
 
     const outputPattern = join(framesDir, "frame_%05d.png");
     const filter = [
-      "fps=32",
+      `fps=24`,
+      `select='not(mod(n\\,2))'`,
       `colorkey=${backgroundColor}:0.18:0.08`,
+      "scale='min(900,iw)':-1:flags=lanczos",
       "format=rgba"
     ].join(",");
 
@@ -63,17 +66,23 @@ export async function POST(request) {
       outputPattern
     ]);
 
-    const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".png")).sort();
+    const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".png")).sort().slice(0, MAX_SPIN_FRAMES);
     const frameUrls = [];
-    for (const frameName of frameNames) {
-      const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
-      await uploadBufferToSupabaseStorage({
-        bytes: await readFile(join(framesDir, frameName)),
-        path,
-        contentType: "image/png",
-        config
-      });
-      frameUrls.push(buildSupabasePublicUrl({ url: config.url, bucket: config.bucket, path }));
+    for (let i = 0; i < frameNames.length; i += 8) {
+      const batch = frameNames.slice(i, i + 8);
+      const uploaded = await Promise.all(
+        batch.map(async (frameName) => {
+          const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
+          await uploadBufferToSupabaseStorage({
+            bytes: await readFile(join(framesDir, frameName)),
+            path,
+            contentType: "image/png",
+            config
+          });
+          return buildSupabasePublicUrl({ url: config.url, bucket: config.bucket, path });
+        })
+      );
+      frameUrls.push(...uploaded);
     }
 
     const manifest = {
