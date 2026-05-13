@@ -6,6 +6,7 @@ import {
   buildSeedancePayload,
   defaultPrompt,
   isSafeUploadedFileName,
+  isPublicHttpOrigin,
   safeUploadName,
   validateReferences
 } from "../web/lib/evolink.mjs";
@@ -39,6 +40,13 @@ test("buildPublicUploadUrl uses request origin and upload path", () => {
     buildPublicUploadUrl("http://localhost:3000", "abc.webp"),
     "http://localhost:3000/uploads/abc.webp"
   );
+});
+
+test("isPublicHttpOrigin rejects local and private origins", () => {
+  assert.equal(isPublicHttpOrigin("https://demo.example.com"), true);
+  assert.equal(isPublicHttpOrigin("http://localhost:3000"), false);
+  assert.equal(isPublicHttpOrigin("http://192.168.100.1:3000"), false);
+  assert.equal(isPublicHttpOrigin("ftp://example.com"), false);
 });
 
 test("isSafeUploadedFileName only accepts flat upload filenames", () => {

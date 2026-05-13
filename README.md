@@ -9,6 +9,7 @@ Configura la key solo lato server:
 ```bash
 cp .env.example .env.local
 # inserisci EVOLINK_API_KEY in .env.local
+# se usi upload temporaneo in locale, esponi l'app e imposta PUBLIC_APP_URL=https://...
 npm install
 npm run dev
 ```
@@ -24,7 +25,7 @@ L'app permette di:
 - creare frame WebP ruotabili stile YafaFits;
 - vedere stato, preview video e modellino drag-to-rotate.
 
-Nota: EvoLink richiede URL pubblici diretti. L'upload temporaneo funziona quando questa app è raggiungibile pubblicamente, per esempio deployata o esposta con tunnel. In locale puro usa URL pubblici esterni.
+Nota: EvoLink richiede URL pubblici diretti. L'upload temporaneo funziona quando questa app è raggiungibile pubblicamente, per esempio deployata o esposta con tunnel, e `PUBLIC_APP_URL` punta a quell'URL pubblico. In locale puro usa URL pubblici esterni.
 
 ## Setup
 

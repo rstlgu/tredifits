@@ -95,6 +95,21 @@ export function buildPublicUploadUrl(origin, fileName) {
   return `${origin.replace(/\/$/, "")}/uploads/${fileName}`;
 }
 
+export function isPublicHttpOrigin(origin) {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== "https:" && url.protocol !== "http:") return false;
+    const host = url.hostname.toLowerCase();
+    if (host === "localhost" || host === "127.0.0.1" || host === "::1") return false;
+    if (/^10\./.test(host)) return false;
+    if (/^192\.168\./.test(host)) return false;
+    if (/^172\.(1[6-9]|2\d|3[0-1])\./.test(host)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function createEvolinkTask(apiKey, payload) {
   const response = await fetch(`${EVOLINK_API_BASE}/v1/videos/generations`, {
     method: "POST",
