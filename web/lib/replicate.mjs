@@ -2,15 +2,11 @@ import { randomUUID } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
+import { isReplicateModel, REPLICATE_MODELS } from "./replicate-models.mjs";
+
 export const REPLICATE_API_BASE = "https://api.replicate.com/v1";
 
-export const REPLICATE_MODELS = [
-  { id: "runwayml/gen4-turbo", label: "Runway Gen-4 Turbo (single image)" }
-];
-
-export function isReplicateModel(model) {
-  return REPLICATE_MODELS.some((item) => item.id === model);
-}
+export { isReplicateModel, REPLICATE_MODELS };
 
 export function encodeReplicateId(predictionId) {
   return `replicate-${predictionId}`;

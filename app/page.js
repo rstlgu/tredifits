@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { defaultPrompt } from "../web/lib/evolink.mjs";
 import { VEO_MODELS } from "../web/lib/gemini-veo-models.mjs";
-import { REPLICATE_MODELS } from "../web/lib/replicate.mjs";
+import { REPLICATE_MODELS } from "../web/lib/replicate-models.mjs";
 
 const DEFAULT_PROMPT = defaultPrompt();
 const SEEDANCE_MODEL = "seedance-2.0-reference-to-video";
