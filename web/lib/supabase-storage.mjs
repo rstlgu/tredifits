@@ -20,8 +20,12 @@ export function buildSupabaseObjectPath({ fileName, id = randomUUID() }) {
   return `temp/${id}/${safeUploadName(fileName)}`;
 }
 
+export function buildSupabaseRenderObjectPath({ renderId, fileName }) {
+  return `renders/${renderId}/${safeUploadName(fileName)}`;
+}
+
 export function isSafeSupabaseObjectPath(path) {
-  return /^temp\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(path) && !path.includes("..");
+  return /^(temp|renders)\/[a-zA-Z0-9_-]+\/[a-zA-Z0-9][a-zA-Z0-9._-]*$/.test(path) && !path.includes("..");
 }
 
 export function buildSupabasePublicUrl({ url, bucket, path }) {
@@ -30,12 +34,16 @@ export function buildSupabasePublicUrl({ url, bucket, path }) {
 
 export async function uploadToSupabaseStorage({ file, path, config }) {
   const bytes = Buffer.from(await file.arrayBuffer());
+  return uploadBufferToSupabaseStorage({ bytes, path, contentType: file.type || "application/octet-stream", config });
+}
+
+export async function uploadBufferToSupabaseStorage({ bytes, path, contentType = "application/octet-stream", config }) {
   const response = await fetch(`${config.url}/storage/v1/object/${encodeURIComponent(config.bucket)}/${path}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${config.serviceRoleKey}`,
       apikey: config.serviceRoleKey,
-      "Content-Type": file.type || "application/octet-stream",
+      "Content-Type": contentType,
       "x-upsert": "true"
     },
     body: bytes

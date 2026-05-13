@@ -11,7 +11,7 @@ import {
   validateReferences
 } from "../web/lib/evolink.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
-import { buildSupabaseObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
+import { buildSupabaseObjectPath, buildSupabaseRenderObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
 
 test("buildSeedancePayload creates reference-to-video request", () => {
   const payload = buildSeedancePayload({
@@ -64,17 +64,22 @@ test("buildSupabaseObjectPath creates temp scoped object path", () => {
 
 test("isSafeSupabaseObjectPath only accepts temp scoped paths", () => {
   assert.equal(isSafeSupabaseObjectPath("temp/abc/file.webp"), true);
+  assert.equal(isSafeSupabaseObjectPath("renders/abc/file.webp"), true);
   assert.equal(isSafeSupabaseObjectPath("../file.webp"), false);
   assert.equal(isSafeSupabaseObjectPath("public/file.webp"), false);
+});
+
+test("buildSupabaseRenderObjectPath creates render scoped object path", () => {
+  assert.equal(buildSupabaseRenderObjectPath({ renderId: "spin-1", fileName: "frame_00001.webp" }), "renders/spin-1/frame_00001.webp");
 });
 
 test("defaultPrompt uses requested hyper realistic green screen camera rotation", () => {
   const prompt = defaultPrompt();
 
   assert.match(prompt, /hyper-realistic 5-second fashion video/);
-  assert.match(prompt, /LOCK POSE/);
-  assert.match(prompt, /Solid green screen background only/);
-  assert.match(prompt, /Green screen output suitable for compositing/);
+  assert.match(prompt, /only the camera rotates smoothly 360/);
+  assert.match(prompt, /Solid plain background only/);
+  assert.match(prompt, /Ultra-consistent identity and outfit continuity/);
 });
 
 test("validateReferences allows either max two images or one video", () => {

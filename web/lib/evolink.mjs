@@ -2,40 +2,7 @@ export const EVOLINK_API_BASE = "https://api.evolink.ai";
 export const SEEDANCE_MODEL = "seedance-2.0-reference-to-video";
 
 export function defaultPrompt() {
-  return `Create a hyper-realistic 5-second fashion video using all reference images and videos provided.
-
-Subject and pose:
-
-The subject must remain perfectly still in the exact same pose extracted from the reference video or photos, preserving every detail of posture, limb position, and body alignment as if performing a 3D scan.
-LOCK POSE: no variation in body position, limb angles, head tilt, or facial expression.
-LOCK IDENTITY: exact same face, hairstyle, skin tone, body proportions.
-LOCK OUTFIT: exact same clothing, shoes, accessories, fabric textures, stitching, front/back details.
-
-Camera movement:
-
-Smooth 360° rotation around the subject in a single complete turn.
-Perfectly fluid, continuous, and evenly paced, with no stutter, jump, or frame artifacts.
-Subject remains centered and full-body framed at fixed distance.
-
-Background:
-
-Solid green screen background only, seamless and uniform.
-No environment changes, props, reflections, or extra elements.
-
-Lighting and realism:
-
-Clean studio lighting, realistic fabric behavior, accurate garment structure from every angle.
-No animation of clothing, hair, or body beyond what is visible in reference.
-
-Consistency enforcement:
-
-LOCK ALL DETAILS across frames: identity, pose, outfit, shoes, hair, facial expression, body proportions.
-Absolute fidelity to references: the AI must treat references as the only source for appearance, posture, and clothing.
-
-Output instructions:
-
-High-resolution, realistic fashion video, maintaining ultra-consistent appearance and seamless 360° rotation.
-Green screen output suitable for compositing into any background`;
+  return "Create a hyper-realistic 5-second fashion video using all reference images and videos. The subject must remain perfectly still in the exact same pose during the entire clip, while only the camera rotates smoothly 360° around the person. Absolute fidelity to the main subject: preserve exactly the same face, hairstyle, body proportions, skin tone, outfit, fabric texture, stitching, accessories, shoes, and all front/back clothing details visible in the references. Solid plain background only (single-color studio backdrop, seamless and uniform), with no environment changes, props, reflections, or additional elements. Full-body centered framing, fixed distance, clean studio lighting, no distortion, no animation of clothing or body, no pose changes, no outfit changes, no extra people. Maintain realistic fabric behavior and accurate garment structure from every angle. Ultra-consistent identity and outfit continuity across all frames.";
 }
 
 export function validateReferences({ imageUrls = [], videoUrls = [] }) {
@@ -81,7 +48,7 @@ export function safeUploadName(name) {
   const ext = (match?.[2] || "").toLowerCase();
   const cleaned = base
     .toLowerCase()
-    .replace(/[^a-z0-9.]+/g, "-")
+    .replace(/[^a-z0-9._]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .replace(/-{2,}/g, "-");
   return `${cleaned || "upload"}${ext}`;

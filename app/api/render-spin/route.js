@@ -1,12 +1,19 @@
 import ffmpegPath from "ffmpeg-static";
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { NextResponse } from "next/server";
 
 import { buildSpinManifest } from "../../../web/lib/spin.mjs";
+import {
+  buildSupabasePublicUrl,
+  buildSupabaseRenderObjectPath,
+  getSupabaseStorageConfig,
+  uploadBufferToSupabaseStorage
+} from "../../../web/lib/supabase-storage.mjs";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;
@@ -23,14 +30,16 @@ async function downloadVideo(videoUrl, outputPath) {
 }
 
 export async function POST(request) {
+  let renderDir;
   try {
     const { videoUrl, backgroundColor = "0x00ff00" } = await request.json();
     if (!videoUrl || !/^https?:\/\//.test(videoUrl)) {
       return NextResponse.json({ error: "videoUrl non valido." }, { status: 400 });
     }
 
+    const config = getSupabaseStorageConfig();
     const id = `spin-${Date.now()}-${randomUUID()}`;
-    const renderDir = join(process.cwd(), "public", "renders", id);
+    renderDir = join(tmpdir(), "tredifits-renders", id);
     const framesDir = join(renderDir, "frames");
     const inputPath = join(renderDir, "source.mp4");
     await mkdir(framesDir, { recursive: true });
@@ -56,15 +65,40 @@ export async function POST(request) {
       outputPattern
     ]);
 
-    const frameCount = (await readdir(framesDir)).filter((name) => name.endsWith(".webp")).length;
-    const manifest = buildSpinManifest({ id, prefix: "frame_", frameCount, ext: "webp" });
-    await writeFile(join(renderDir, "manifest.json"), JSON.stringify(manifest, null, 2));
+    const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".webp")).sort();
+    const frameUrls = [];
+    for (const frameName of frameNames) {
+      const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
+      await uploadBufferToSupabaseStorage({
+        bytes: await readFile(join(framesDir, frameName)),
+        path,
+        contentType: "image/webp",
+        config
+      });
+      frameUrls.push(buildSupabasePublicUrl({ url: config.url, bucket: config.bucket, path }));
+    }
+
+    const manifest = {
+      ...buildSpinManifest({ id, prefix: "frame_", frameCount: frameUrls.length, ext: "webp" }),
+      frames: frameUrls
+    };
+    const manifestPath = buildSupabaseRenderObjectPath({ renderId: id, fileName: "manifest.json" });
+    await uploadBufferToSupabaseStorage({
+      bytes: Buffer.from(JSON.stringify(manifest, null, 2)),
+      path: manifestPath,
+      contentType: "application/json",
+      config
+    });
 
     return NextResponse.json({
       ...manifest,
-      manifestUrl: `/renders/${id}/manifest.json`
+      manifestUrl: buildSupabasePublicUrl({ url: config.url, bucket: config.bucket, path: manifestPath })
     });
   } catch (error) {
     return NextResponse.json({ error: error.message || "Render spin fallito." }, { status: 500 });
+  } finally {
+    if (renderDir) {
+      await rm(renderDir, { recursive: true, force: true }).catch(() => {});
+    }
   }
 }
