@@ -4,6 +4,7 @@ import { buildSeedancePayload, createEvolinkTask } from "../../../web/lib/evolin
 import { createGeminiVeoTask, isGeminiVeoModel } from "../../../web/lib/gemini-veo.mjs";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 export async function POST(request) {
   try {
@@ -48,6 +49,7 @@ export async function POST(request) {
     const task = await createEvolinkTask(apiKey, payload);
     return NextResponse.json(task);
   } catch (error) {
+    console.error("/api/generate error", error);
     return NextResponse.json({ error: error.message || "Generazione fallita." }, { status: 400 });
   }
 }

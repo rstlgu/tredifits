@@ -162,8 +162,9 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ model, imageUrls, videoUrls, prompt, duration, quality, aspectRatio: "16:9" })
       });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body.error || "Generazione fallita.");
+      const rawText = await response.text();
+      const body = rawText ? JSON.parse(rawText) : {};
+      if (!response.ok) throw new Error(body.error || `Generazione fallita (HTTP ${response.status}).`);
 
       setTask(body);
       const finalTask = await pollTask(body.id);
