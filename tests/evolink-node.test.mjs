@@ -17,6 +17,14 @@ import {
   safeUploadName,
   validateReferences
 } from "../web/lib/evolink.mjs";
+import {
+  buildGeminiVeoPayload,
+  decodeGeminiOperationId,
+  encodeGeminiOperationId,
+  isGeminiVeoModel,
+  normalizeGeminiResolution,
+  VEO_MODELS
+} from "../web/lib/gemini-veo.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
 import { buildSupabaseObjectPath, buildSupabaseRenderObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
 
@@ -98,6 +106,60 @@ test("validateReferences allows either max two images or one video", () => {
   assert.doesNotThrow(() => validateReferences({ imageUrls: [], videoUrls: ["https://a.test/v.mp4"] }));
   assert.throws(() => validateReferences({ imageUrls: ["1", "2", "3"], videoUrls: [] }), /massimo 2 foto/);
   assert.throws(() => validateReferences({ imageUrls: ["1"], videoUrls: ["v"] }), /Scegli foto oppure video/);
+});
+
+test("Veo model registry contains Gemini 3.1 preview variants", () => {
+  assert.deepEqual(VEO_MODELS.map((item) => item.id), [
+    "veo-3.1-generate-preview",
+    "veo-3.1-fast-generate-preview",
+    "veo-3.1-lite-generate-preview"
+  ]);
+  assert.equal(isGeminiVeoModel("veo-3.1-fast-generate-preview"), true);
+  assert.equal(isGeminiVeoModel("seedance-2.0-reference-to-video"), false);
+});
+
+test("buildGeminiVeoPayload creates reference image request", () => {
+  const payload = buildGeminiVeoPayload({
+    model: "veo-3.1-fast-generate-preview",
+    prompt: "rotate",
+    images: [
+      { mimeType: "image/png", data: "aaa" },
+      { mimeType: "image/jpeg", data: "bbb" }
+    ],
+    quality: "1080p",
+    aspectRatio: "16:9"
+  });
+
+  assert.deepEqual(payload, {
+    instances: [{
+      prompt: "rotate",
+      referenceImages: [
+        { image: { inlineData: { mimeType: "image/png", data: "aaa" } }, referenceType: "asset" },
+        { image: { inlineData: { mimeType: "image/jpeg", data: "bbb" } }, referenceType: "asset" }
+      ]
+    }],
+    parameters: {
+      aspectRatio: "16:9",
+      resolution: "1080p"
+    }
+  });
+});
+
+test("buildGeminiVeoPayload rejects video references", () => {
+  assert.throws(
+    () => buildGeminiVeoPayload({ model: "veo-3.1-generate-preview", prompt: "x", images: [], videoUrls: ["https://x.test/a.mp4"] }),
+    /Veo 3.1 supporta reference immagini/
+  );
+});
+
+test("normalizeGeminiResolution maps unsupported values", () => {
+  assert.equal(normalizeGeminiResolution("480p"), "720p");
+  assert.equal(normalizeGeminiResolution("4k", "veo-3.1-lite-generate-preview"), "1080p");
+});
+
+test("Gemini operation ids round trip safely through routes", () => {
+  const operationName = "operations/abc-123";
+  assert.equal(decodeGeminiOperationId(encodeGeminiOperationId(operationName)), operationName);
 });
 
 test("buildSpinManifest emits yafa style frame urls", () => {
