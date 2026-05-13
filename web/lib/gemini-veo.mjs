@@ -59,7 +59,7 @@ async function uploadImageToFilesApi(apiKey, url) {
   const endPart = Buffer.from(`\r\n--${boundary}--`);
   const body = Buffer.concat([metaPart, bytes, endPart]);
 
-  const uploadResponse = await fetch(`${GEMINI_API_BASE}/upload/files`, {
+  const uploadResponse = await fetch(`https://generativelanguage.googleapis.com/upload/v1beta/files`, {
     method: "POST",
     headers: {
       "x-goog-api-key": apiKey,
