@@ -225,7 +225,7 @@ export default function Home() {
           </div>
           {isVeo && <p className="hint">Veo preview usa reference immagini. Richiede Gemini API paid tier e genera video 8 sec.</p>}
           {isReplicate && model === "runwayml/gen4-turbo" && <p className="hint">Runway Gen-4 Turbo: 1 immagine reference, durata 5 o 10 sec, 720p.</p>}
-          {isReplicate && model === "bytedance/seedance-2.0" && <p className="hint">Seedance 2.0 (Replicate): 1 immagine = first+last frame uguali (loop); 2 immagini = first/last; 3+ = reference_images. Durata 3-12 sec, 480p/720p.</p>}
+          {isReplicate && model === "bytedance/seedance-2.0" && <p className="hint">Seedance 2.0 (Replicate): fino a 9 immagini come reference; al prompt viene aggiunta richiesta di loop 360 perfetto. Durata 3-12 sec, 480p/720p.</p>}
 
           <div className="modeSwitch sourceSwitch" role="tablist" aria-label="Sorgente reference">
             <button type="button" className={source === "url" ? "active" : ""} onClick={() => setSource("url")}>

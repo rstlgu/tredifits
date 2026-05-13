@@ -51,9 +51,18 @@ function buildGen4TurboInput({ imageUrls, videoUrls, prompt, duration, aspectRat
   };
 }
 
+const SEEDANCE_LOOP_SUFFIX = "Il video risultante deve essere un loop 360 perfetto: l'ultimo frame combacia esattamente con il primo, rotazione continua senza stacchi.";
+
+function withLoopSuffix(prompt) {
+  const base = (prompt || "").trim();
+  if (!base) return SEEDANCE_LOOP_SUFFIX;
+  if (base.includes("loop 360")) return base;
+  return `${base}\n\n${SEEDANCE_LOOP_SUFFIX}`;
+}
+
 function buildSeedance20Input({ imageUrls, videoUrls, prompt, duration, aspectRatio, quality }) {
   const input = {
-    prompt: prompt || "",
+    prompt: withLoopSuffix(prompt),
     duration: normalizeSeedanceDuration(duration),
     resolution: normalizeSeedanceResolution(quality),
     aspect_ratio: normalizeAspect(aspectRatio, true),
@@ -63,17 +72,7 @@ function buildSeedance20Input({ imageUrls, videoUrls, prompt, duration, aspectRa
     input.reference_videos = videoUrls.slice(0, 3);
     return input;
   }
-  if (imageUrls.length === 1) {
-    input.image = imageUrls[0];
-    input.last_frame_image = imageUrls[0];
-    return input;
-  }
-  if (imageUrls.length === 2) {
-    input.image = imageUrls[0];
-    input.last_frame_image = imageUrls[1];
-    return input;
-  }
-  if (imageUrls.length > 2) {
+  if (imageUrls.length > 0) {
     input.reference_images = imageUrls.slice(0, 9);
     return input;
   }
