@@ -1,29 +1,57 @@
-export function hasRemoveBgKey(env = process.env) {
-  return Boolean(env.REMOVE_BG_API_KEY);
+import sharp from "sharp";
+
+let segmenterPromise;
+
+export function hasInHouseBackgroundRemoval() {
+  return true;
 }
 
-export async function removeBackgroundWithRemoveBg({ bytes, fileName = "frame.png", apiKey = process.env.REMOVE_BG_API_KEY }) {
-  if (!apiKey) {
-    throw new Error("REMOVE_BG_API_KEY non configurata.");
+async function getSegmenter() {
+  if (!segmenterPromise) {
+    segmenterPromise = import("@huggingface/transformers").then(({ pipeline, env }) => {
+      env.allowLocalModels = false;
+      env.backends.onnx.wasm.numThreads = 1;
+      return pipeline("image-segmentation", "Xenova/modnet", { device: "cpu" });
+    });
+  }
+  return segmenterPromise;
+}
+
+export async function removeBackgroundInHouse({ bytes }) {
+  const image = sharp(bytes).ensureAlpha();
+  const metadata = await image.metadata();
+  const width = metadata.width;
+  const height = metadata.height;
+  if (!width || !height) {
+    throw new Error("Frame non valido per background removal.");
   }
 
-  const form = new FormData();
-  form.append("image_file", new Blob([bytes], { type: "image/png" }), fileName);
-  form.append("size", "auto");
-  form.append("format", "png");
-
-  const response = await fetch("https://api.remove.bg/v1.0/removebg", {
-    method: "POST",
-    headers: {
-      "X-Api-Key": apiKey
-    },
-    body: form
-  });
-
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
-    throw new Error(`remove.bg failed with ${response.status}: ${errorText.slice(0, 200)}`);
+  const segmenter = await getSegmenter();
+  const result = await segmenter(bytes);
+  const maskSource = Array.isArray(result) ? result[0]?.mask : result?.mask;
+  if (!maskSource) {
+    throw new Error("Il modello non ha restituito una maschera.");
   }
 
-  return Buffer.from(await response.arrayBuffer());
+  const maskBytes = Buffer.from(await maskSource.toRaw());
+  const maskMeta = maskSource.size || {};
+  const maskWidth = maskMeta.width || width;
+  const maskHeight = maskMeta.height || height;
+  const alpha = await sharp(maskBytes, {
+    raw: {
+      width: maskWidth,
+      height: maskHeight,
+      channels: 1
+    }
+  })
+    .resize(width, height, { fit: "fill" })
+    .median(3)
+    .blur(0.4)
+    .raw()
+    .toBuffer();
+
+  return image
+    .joinChannel(alpha, { raw: { width, height, channels: 1 } })
+    .png()
+    .toBuffer();
 }

@@ -11,8 +11,6 @@ cp .env.example .env.local
 # inserisci EVOLINK_API_KEY in .env.local
 # per upload temporaneo configura anche Supabase Storage:
 # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET
-# per scontorno semantico persona:
-# REMOVE_BG_API_KEY
 npm install
 npm run dev
 ```
@@ -30,7 +28,7 @@ L'app permette di:
 
 Nota: EvoLink richiede URL pubblici diretti. Gli upload temporanei vengono salvati in Supabase Storage e cancellati a fine job. Il bucket configurato in `SUPABASE_STORAGE_BUCKET` deve essere pubblico, così EvoLink può scaricare i reference.
 
-Per scontorno persona accurato configura `REMOVE_BG_API_KEY`. Senza questa key l'app usa solo un fallback chroma key basato sul colore dello sfondo.
+Lo scontorno del modellino usa un modello in-house locale lato server, senza API esterne per frame.
 
 ## Supabase Storage
 

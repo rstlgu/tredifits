@@ -8,7 +8,7 @@ import { promisify } from "node:util";
 import { NextResponse } from "next/server";
 
 import { buildSpinManifest } from "../../../web/lib/spin.mjs";
-import { hasRemoveBgKey, removeBackgroundWithRemoveBg } from "../../../web/lib/background-removal.mjs";
+import { removeBackgroundInHouse } from "../../../web/lib/background-removal.mjs";
 import {
   buildSupabasePublicUrl,
   buildSupabaseRenderObjectPath,
@@ -20,7 +20,7 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 const execFileAsync = promisify(execFile);
-const MAX_SPIN_FRAMES = 72;
+const MAX_SPIN_FRAMES = 48;
 
 async function downloadVideo(videoUrl, outputPath) {
   const response = await fetch(videoUrl);
@@ -48,15 +48,12 @@ export async function POST(request) {
     await downloadVideo(videoUrl, inputPath);
 
     const outputPattern = join(framesDir, "frame_%05d.png");
-    const semanticMatting = hasRemoveBgKey();
     const baseFilters = [
-      `fps=24`,
-      `select='not(mod(n\\,2))'`,
-      "scale='min(900,iw)':-1:flags=lanczos"
+      "fps=12",
+      "scale='min(720,iw)':-1:flags=lanczos"
     ];
     const filter = [
       ...baseFilters,
-      ...(semanticMatting ? [] : [`colorkey=${backgroundColor}:0.28:0.16`]),
       "format=rgba"
     ].join(",");
 
@@ -74,14 +71,12 @@ export async function POST(request) {
     const frameNames = (await readdir(framesDir)).filter((name) => name.endsWith(".png")).sort().slice(0, MAX_SPIN_FRAMES);
     const frameUrls = [];
     for (let i = 0; i < frameNames.length; i += 8) {
-      const batch = frameNames.slice(i, i + 8);
+      const batch = frameNames.slice(i, i + 4);
       const uploaded = await Promise.all(
         batch.map(async (frameName) => {
           const path = buildSupabaseRenderObjectPath({ renderId: id, fileName: frameName });
           const sourceBytes = await readFile(join(framesDir, frameName));
-          const outputBytes = semanticMatting
-            ? await removeBackgroundWithRemoveBg({ bytes: sourceBytes, fileName })
-            : sourceBytes;
+          const outputBytes = await removeBackgroundInHouse({ bytes: sourceBytes });
           await uploadBufferToSupabaseStorage({
             bytes: outputBytes,
             path,

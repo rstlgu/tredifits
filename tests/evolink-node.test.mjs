@@ -12,7 +12,7 @@ import {
 } from "../web/lib/evolink.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
 import { buildSupabaseObjectPath, buildSupabaseRenderObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
-import { hasRemoveBgKey } from "../web/lib/background-removal.mjs";
+import { hasInHouseBackgroundRemoval } from "../web/lib/background-removal.mjs";
 
 test("buildSeedancePayload creates reference-to-video request", () => {
   const payload = buildSeedancePayload({
@@ -100,7 +100,6 @@ test("buildSpinManifest emits yafa style frame urls", () => {
   ]);
 });
 
-test("hasRemoveBgKey detects configured semantic matting", () => {
-  assert.equal(hasRemoveBgKey({ REMOVE_BG_API_KEY: "key" }), true);
-  assert.equal(hasRemoveBgKey({}), false);
+test("hasInHouseBackgroundRemoval is available without external api key", () => {
+  assert.equal(hasInHouseBackgroundRemoval(), true);
 });
