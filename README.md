@@ -9,6 +9,7 @@ Configura la key solo lato server:
 ```bash
 cp .env.example .env.local
 # inserisci EVOLINK_API_KEY in .env.local
+# opzionale: inserisci GEMINI_API_KEY per Veo 3.1
 npm install
 npm run dev
 ```
@@ -20,6 +21,7 @@ L'app permette di:
 - scegliere **1-2 foto** oppure **1 video reference max 5 sec**;
 - usare URL pubblici già pronti oppure upload temporaneo;
 - creare un task Seedance 2.0 Reference-to-Video da 5-10 secondi;
+- creare un task Gemini Veo 3.1 preview con reference immagini, se `GEMINI_API_KEY` è configurata;
 - rimuovere automaticamente lo sfondo uniforme dal video generato;
 - creare frame WebP ruotabili stile YafaFits;
 - vedere stato, preview video e modellino drag-to-rotate.
