@@ -1,0 +1,4 @@
+rembg[gpu]
+onnxruntime-gpu
+Pillow
+opencv-python

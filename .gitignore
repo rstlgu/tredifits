@@ -1,0 +1,11 @@
+.venv/
+.env
+.env.local
+input/
+output/
+__pycache__/
+*.pyc
+.next/
+node_modules/
+public/uploads/
+public/renders/
