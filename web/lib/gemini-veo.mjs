@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 
-import { isGeminiVeoModel, normalizeGeminiResolution, VEO_MODELS } from "./gemini-veo-models.mjs";
+import { isGeminiVeoModel, isVeo30Model, normalizeGeminiResolution, VEO_MODELS } from "./gemini-veo-models.mjs";
 
 export const GEMINI_API_BASE = "https://generativelanguage.googleapis.com/v1beta";
 
-export { isGeminiVeoModel, normalizeGeminiResolution, VEO_MODELS };
+export { isGeminiVeoModel, isVeo30Model, normalizeGeminiResolution, VEO_MODELS };
 
 export function encodeGeminiOperationId(operationName) {
   return `gemini-${Buffer.from(operationName).toString("base64url")}`;
@@ -26,10 +26,25 @@ export function buildGeminiVeoPayload({
   aspectRatio = "16:9"
 }) {
   if (!isGeminiVeoModel(model)) throw new Error("Modello Veo non supportato.");
-  if (videoUrls.length > 0) throw new Error("Veo 3.1 supporta reference immagini; i video reference non sono supportati in questa integrazione.");
-  if (images.length === 0) throw new Error("Veo 3.1 richiede almeno una reference immagine.");
-  if (images.length > 3) throw new Error("Veo 3.1 supporta massimo 3 reference immagini.");
+  if (videoUrls.length > 0) throw new Error("Veo supporta reference immagini; i video reference non sono supportati in questa integrazione.");
+  if (images.length === 0) throw new Error("Veo richiede almeno una reference immagine.");
 
+  const parameters = {
+    aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
+    resolution: normalizeGeminiResolution(quality, model)
+  };
+
+  if (isVeo30Model(model)) {
+    return {
+      instances: [{
+        prompt,
+        image: { bytesBase64Encoded: images[0].data, mimeType: images[0].mimeType }
+      }],
+      parameters
+    };
+  }
+
+  if (images.length > 3) throw new Error("Veo 3.1 supporta massimo 3 reference immagini.");
   return {
     instances: [{
       prompt,
@@ -38,10 +53,7 @@ export function buildGeminiVeoPayload({
         referenceType: "asset"
       }))
     }],
-    parameters: {
-      aspectRatio: aspectRatio === "9:16" ? "9:16" : "16:9",
-      resolution: normalizeGeminiResolution(quality, model)
-    }
+    parameters
   };
 }
 
@@ -55,7 +67,8 @@ async function fetchImageAsBase64(url) {
 }
 
 export async function createGeminiVeoTask(apiKey, { model, imageUrls = [], videoUrls = [], prompt, quality, aspectRatio }) {
-  const images = await Promise.all(imageUrls.slice(0, 3).map(fetchImageAsBase64));
+  const maxImages = isVeo30Model(model) ? 1 : 3;
+  const images = await Promise.all(imageUrls.slice(0, maxImages).map(fetchImageAsBase64));
   const payload = buildGeminiVeoPayload({ model, prompt, images, videoUrls, quality, aspectRatio });
   const response = await fetch(`${GEMINI_API_BASE}/models/${model}:predictLongRunning`, {
     method: "POST",
