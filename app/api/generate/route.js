@@ -44,7 +44,8 @@ export async function POST(request) {
         videoUrls,
         prompt: body.prompt,
         duration: Number.isFinite(Number(body.duration)) ? Number(body.duration) : 5,
-        aspectRatio: body.aspectRatio || "16:9"
+        aspectRatio: body.aspectRatio || "16:9",
+        quality: body.quality || "720p"
       });
       return NextResponse.json(task);
     }

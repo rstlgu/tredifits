@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 
 import { defaultPrompt } from "../web/lib/evolink.mjs";
 import { VEO_MODELS } from "../web/lib/gemini-veo-models.mjs";
-import { REPLICATE_MODELS } from "../web/lib/replicate-models.mjs";
+import { isReplicateImagesOnlyModel, REPLICATE_MODELS } from "../web/lib/replicate-models.mjs";
 
 const DEFAULT_PROMPT = defaultPrompt();
 const SEEDANCE_MODEL = "seedance-2.0-reference-to-video";
@@ -39,7 +39,7 @@ export default function Home() {
   }, [files, imageUrlsText, mode, source, videoUrlsText]);
   const isVeo = model.startsWith("veo-");
   const isReplicate = REPLICATE_MODELS.some((item) => item.id === model);
-  const isImagesOnly = isVeo || isReplicate;
+  const isImagesOnly = isVeo || isReplicateImagesOnlyModel(model);
 
   function onFilesSelected(fileList) {
     const selected = Array.from(fileList || []);
@@ -194,7 +194,7 @@ export default function Home() {
       <section className="panel">
           <div className="brand">
             <span>Outfit Motion Lab</span>
-          <strong>{isVeo ? "Gemini Veo" : isReplicate ? "Runway Gen-4 Turbo" : "Seedance 2.0"}</strong>
+          <strong>{isVeo ? "Gemini Veo" : isReplicate ? (REPLICATE_MODELS.find((item) => item.id === model)?.label || "Replicate") : "Seedance 2.0"}</strong>
           </div>
 
         <form onSubmit={onSubmit} className="form">
@@ -203,7 +203,7 @@ export default function Home() {
             <select value={model} onChange={(event) => {
               const next = event.target.value;
               setModel(next);
-              if (next.startsWith("veo-") || REPLICATE_MODELS.some((item) => item.id === next)) setMode("images");
+              if (next.startsWith("veo-") || isReplicateImagesOnlyModel(next)) setMode("images");
             }} aria-label="Modello video">
               <option value={SEEDANCE_MODEL}>Seedance 2.0 Reference-to-Video</option>
               {VEO_MODELS.map((item) => (
@@ -224,7 +224,8 @@ export default function Home() {
             </button>
           </div>
           {isVeo && <p className="hint">Veo preview usa reference immagini. Richiede Gemini API paid tier e genera video 8 sec.</p>}
-          {isReplicate && <p className="hint">Runway Gen-4 Turbo usa una sola immagine reference. Durata 5 o 10 sec, 720p.</p>}
+          {isReplicate && model === "runwayml/gen4-turbo" && <p className="hint">Runway Gen-4 Turbo: 1 immagine reference, durata 5 o 10 sec, 720p.</p>}
+          {isReplicate && model === "bytedance/seedance-2.0" && <p className="hint">Seedance 2.0 (Replicate): fino a 9 immagini reference oppure 1 video; durata 3-12 sec, 480p/720p.</p>}
 
           <div className="modeSwitch sourceSwitch" role="tablist" aria-label="Sorgente reference">
             <button type="button" className={source === "url" ? "active" : ""} onClick={() => setSource("url")}>
