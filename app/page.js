@@ -57,16 +57,16 @@ export default function Home() {
     return {
       imageUrls: uploaded.filter((item) => item.type.startsWith("image/")).map((item) => item.url),
       videoUrls: uploaded.filter((item) => item.type.startsWith("video/")).map((item) => item.url),
-      fileNames: uploaded.map((item) => item.fileName).filter(Boolean)
+      storagePaths: uploaded.map((item) => item.storagePath).filter(Boolean)
     };
   }
 
-  async function cleanupUploads(fileNames) {
-    if (!fileNames.length) return;
+  async function cleanupUploads(storagePaths) {
+    if (!storagePaths.length) return;
     await fetch("/api/cleanup-uploads", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ fileNames })
+      body: JSON.stringify({ storagePaths })
     }).catch(() => {});
   }
 
@@ -88,11 +88,11 @@ export default function Home() {
     setTask(null);
     setSpin(null);
     setMessage("");
-    let tempFileNames = [];
+    let tempStoragePaths = [];
 
     try {
-      const uploaded = source === "upload" ? await uploadReferences() : { imageUrls: [], videoUrls: [], fileNames: [] };
-      tempFileNames = uploaded.fileNames;
+      const uploaded = source === "upload" ? await uploadReferences() : { imageUrls: [], videoUrls: [], storagePaths: [] };
+      tempStoragePaths = uploaded.storagePaths;
       const imageUrls = mode === "images" ? (source === "upload" ? uploaded.imageUrls : splitUrls(imageUrlsText).slice(0, 2)) : [];
       const videoUrls = mode === "video" ? (source === "upload" ? uploaded.videoUrls : splitUrls(videoUrlsText).slice(0, 1)) : [];
 
@@ -132,7 +132,7 @@ export default function Home() {
       setStatus("failed");
       setMessage(error.message);
     } finally {
-      await cleanupUploads(tempFileNames);
+      await cleanupUploads(tempStoragePaths);
     }
   }
 

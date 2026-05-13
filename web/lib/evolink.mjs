@@ -92,7 +92,7 @@ export function isSafeUploadedFileName(name) {
 }
 
 export function buildPublicUploadUrl(origin, fileName) {
-  return `${origin.replace(/\/$/, "")}/uploads/${fileName}`;
+  return `${origin.replace(/\/$/, "")}/api/temp-files/${fileName}`;
 }
 
 export function isPublicHttpOrigin(origin) {

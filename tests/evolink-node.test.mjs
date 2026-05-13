@@ -11,6 +11,7 @@ import {
   validateReferences
 } from "../web/lib/evolink.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
+import { buildSupabaseObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
 
 test("buildSeedancePayload creates reference-to-video request", () => {
   const payload = buildSeedancePayload({
@@ -38,7 +39,7 @@ test("safeUploadName strips unsafe characters", () => {
 test("buildPublicUploadUrl uses request origin and upload path", () => {
   assert.equal(
     buildPublicUploadUrl("http://localhost:3000", "abc.webp"),
-    "http://localhost:3000/uploads/abc.webp"
+    "http://localhost:3000/api/temp-files/abc.webp"
   );
 });
 
@@ -53,6 +54,18 @@ test("isSafeUploadedFileName only accepts flat upload filenames", () => {
   assert.equal(isSafeUploadedFileName("123-keyframe.webp"), true);
   assert.equal(isSafeUploadedFileName("../.env"), false);
   assert.equal(isSafeUploadedFileName("nested/file.webp"), false);
+});
+
+test("buildSupabaseObjectPath creates temp scoped object path", () => {
+  const path = buildSupabaseObjectPath({ fileName: "My Clip!.mp4", id: "abc123" });
+
+  assert.equal(path, "temp/abc123/my-clip.mp4");
+});
+
+test("isSafeSupabaseObjectPath only accepts temp scoped paths", () => {
+  assert.equal(isSafeSupabaseObjectPath("temp/abc/file.webp"), true);
+  assert.equal(isSafeSupabaseObjectPath("../file.webp"), false);
+  assert.equal(isSafeSupabaseObjectPath("public/file.webp"), false);
 });
 
 test("defaultPrompt uses requested hyper realistic green screen camera rotation", () => {

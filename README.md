@@ -9,7 +9,8 @@ Configura la key solo lato server:
 ```bash
 cp .env.example .env.local
 # inserisci EVOLINK_API_KEY in .env.local
-# se usi Vercel: PUBLIC_APP_URL=https://tredifits.vercel.app
+# per upload temporaneo configura anche Supabase Storage:
+# SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_STORAGE_BUCKET
 npm install
 npm run dev
 ```
@@ -25,7 +26,7 @@ L'app permette di:
 - creare frame WebP ruotabili stile YafaFits;
 - vedere stato, preview video e modellino drag-to-rotate.
 
-Nota: EvoLink richiede URL pubblici diretti. Per Vercel imposta `PUBLIC_APP_URL=https://tredifits.vercel.app`. In locale puro usa URL pubblici esterni o un tunnel.
+Nota: EvoLink richiede URL pubblici diretti. Gli upload temporanei vengono salvati in Supabase Storage e cancellati a fine job. Il bucket configurato in `SUPABASE_STORAGE_BUCKET` deve essere pubblico, così EvoLink può scaricare i reference.
 
 ## Setup
 
