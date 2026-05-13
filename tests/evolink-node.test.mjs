@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import sharp from "sharp";
 
+import {
+  applyAlphaMask,
+  createSegmenterImageInput,
+  hasInHouseBackgroundRemoval,
+  normalizeMaskAlpha
+} from "../web/lib/background-removal.mjs";
 import {
   buildPublicUploadUrl,
   buildSeedancePayload,
@@ -12,7 +19,6 @@ import {
 } from "../web/lib/evolink.mjs";
 import { buildSpinManifest } from "../web/lib/spin.mjs";
 import { buildSupabaseObjectPath, buildSupabaseRenderObjectPath, isSafeSupabaseObjectPath } from "../web/lib/supabase-storage.mjs";
-import { hasInHouseBackgroundRemoval } from "../web/lib/background-removal.mjs";
 
 test("buildSeedancePayload creates reference-to-video request", () => {
   const payload = buildSeedancePayload({
@@ -74,12 +80,16 @@ test("buildSupabaseRenderObjectPath creates render scoped object path", () => {
   assert.equal(buildSupabaseRenderObjectPath({ renderId: "spin-1", fileName: "frame_00001.webp" }), "renders/spin-1/frame_00001.webp");
 });
 
-test("defaultPrompt uses requested hyper realistic green screen camera rotation", () => {
+test("defaultPrompt uses requested hyper realistic white background camera rotation", () => {
   const prompt = defaultPrompt();
 
   assert.match(prompt, /hyper-realistic 5-second fashion video/);
   assert.match(prompt, /only the camera rotates smoothly 360/);
-  assert.match(prompt, /Solid pure green screen background only/);
+  assert.match(prompt, /flat pure white background/);
+  assert.match(prompt, /No shadows on the background/);
+  assert.match(prompt, /no floor line/);
+  assert.match(prompt, /must remain exactly #ffffff/);
+  assert.match(prompt, /perfectly uniform white matte/);
   assert.match(prompt, /Ultra-consistent identity and outfit continuity/);
 });
 
@@ -103,4 +113,50 @@ test("buildSpinManifest emits yafa style frame urls", () => {
 test("hasInHouseBackgroundRemoval is gated by local flag", () => {
   assert.equal(hasInHouseBackgroundRemoval({ LOCAL_INHOUSE_MATTING: "1" }), true);
   assert.equal(hasInHouseBackgroundRemoval({ LOCAL_INHOUSE_MATTING: "0" }), false);
+});
+
+test("createSegmenterImageInput passes image bytes without data urls", async () => {
+  const bytes = Buffer.from([1, 2, 3, 4]);
+  const input = createSegmenterImageInput(bytes);
+
+  assert.equal(typeof input, "object");
+  assert.equal(input instanceof Blob, true);
+  assert.equal(input.type, "image/png");
+  assert.deepEqual(Buffer.from(await input.arrayBuffer()), bytes);
+});
+
+test("normalizeMaskAlpha keeps a single alpha byte per pixel", async () => {
+  const alpha = await normalizeMaskAlpha({
+    sharp,
+    maskBytes: Buffer.from([0, 128, 255, 64]),
+    maskWidth: 2,
+    maskHeight: 2,
+    width: 2,
+    height: 2
+  });
+
+  assert.equal(alpha.length, 4);
+  assert.deepEqual([...alpha], [0, 128, 255, 64]);
+});
+
+test("applyAlphaMask replaces an opaque source alpha channel", async () => {
+  const image = sharp({
+    create: {
+      width: 2,
+      height: 1,
+      channels: 4,
+      background: { r: 10, g: 20, b: 30, alpha: 1 }
+    }
+  });
+  const output = await applyAlphaMask({
+    sharp,
+    image,
+    alpha: Buffer.from([0, 255]),
+    width: 2,
+    height: 1
+  });
+  const raw = await sharp(output).raw().toBuffer({ resolveWithObject: true });
+
+  assert.equal(raw.info.channels, 4);
+  assert.deepEqual([...raw.data], [10, 20, 30, 0, 10, 20, 30, 255]);
 });

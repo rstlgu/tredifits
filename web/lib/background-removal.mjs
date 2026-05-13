@@ -2,6 +2,38 @@ export function hasInHouseBackgroundRemoval(env = process.env) {
   return env.LOCAL_INHOUSE_MATTING === "1";
 }
 
+export function createSegmenterImageInput(bytes) {
+  return new Blob([bytes], { type: "image/png" });
+}
+
+export async function normalizeMaskAlpha({ sharp, maskBytes, maskWidth, maskHeight, width, height }) {
+  let mask = sharp(maskBytes, {
+    raw: { width: maskWidth, height: maskHeight, channels: 1 }
+  })
+    .resize(width, height, { fit: "fill" })
+    .greyscale();
+  if (width >= 3 && height >= 3) {
+    mask = mask.median(3).blur(0.4);
+  }
+  return mask.raw().toBuffer();
+}
+
+export async function applyAlphaMask({ sharp, image, alpha, width, height }) {
+  if (alpha.length !== width * height) {
+    throw new Error(`Maschera alpha non valida: ${alpha.length} byte per ${width}x${height}.`);
+  }
+
+  const { data } = await image.ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+  const rgba = Buffer.from(data);
+  for (let pixel = 0, alphaIndex = 3; pixel < alpha.length; pixel += 1, alphaIndex += 4) {
+    rgba[alphaIndex] = alpha[pixel];
+  }
+
+  return sharp(rgba, { raw: { width, height, channels: 4 } })
+    .png()
+    .toBuffer();
+}
+
 export async function removeBackgroundInHouse({ bytes }) {
   if (!hasInHouseBackgroundRemoval()) {
     return bytes;
@@ -28,8 +60,7 @@ export async function removeBackgroundInHouse({ bytes }) {
   if (!width || !height) throw new Error("Frame non valido per background removal.");
 
   const segmenter = await globalThis.__tredifitsSegmenterPromise;
-  const dataUrl = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
-  const result = await segmenter(dataUrl);
+  const result = await segmenter(createSegmenterImageInput(bytes));
   const maskSource = Array.isArray(result) ? result[0]?.mask : result?.mask;
   if (!maskSource) throw new Error("Il modello non ha restituito una maschera.");
 
@@ -45,17 +76,7 @@ export async function removeBackgroundInHouse({ bytes }) {
   }
   const maskWidth = maskMeta.width || width;
   const maskHeight = maskMeta.height || height;
-  const alpha = await sharp(maskBytes, {
-    raw: { width: maskWidth, height: maskHeight, channels: 1 }
-  })
-    .resize(width, height, { fit: "fill" })
-    .median(3)
-    .blur(0.4)
-    .raw()
-    .toBuffer();
+  const alpha = await normalizeMaskAlpha({ sharp, maskBytes, maskWidth, maskHeight, width, height });
 
-  return image
-    .joinChannel(alpha, { raw: { width, height, channels: 1 } })
-    .png()
-    .toBuffer();
+  return applyAlphaMask({ sharp, image, alpha, width, height });
 }
